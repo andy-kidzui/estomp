@@ -1,0 +1,20 @@
+Getting
+=======
+
+$ git clone git://github.com/andy-kidzui/estomp.git estomp.git
+
+Building
+========
+
+$ make
+
+Starting
+========
+
+$ erl -pa ebin/
+
+1> stomp_supervisor:start_in_shell_for_testing().
+ok
+2> sample_gateway:start([]).
+ok
+
