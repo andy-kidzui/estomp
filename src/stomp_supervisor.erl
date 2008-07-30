@@ -1,26 +1,29 @@
+%% @author Andrew Kreiling <andy@kidzui.com>
+%% @copyright 2008 KidZui, Inc. All Rights Reserved.
+
+%% @doc Supervisor for the stomp clients.
+
 -module(stomp_supervisor).
 -author('Andrew Kreiling <andy@kidzui.com>').
+
 -behaviour(supervisor).
 
--export([start/0, start_in_shell_for_testing/0, start_link/1, init/1]).
+%% External exports
+-export([start_link/0]).
 
-start() ->
-    spawn(fun() ->
-        supervisor:start_link({local, ?MODULE}, ?MODULE, _Arg = [])
-    end),
-    ok.
+%% supervisor callbacks
+-export([init/1]).
 
-start_in_shell_for_testing() ->
-    {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, _Arg = []),
-    unlink(Pid),
-    ok.
+%% @spec start_link() -> Result
+%% @doc API for stating the supervisor.
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_link(Args) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, Args).
-
-init(_Args) ->
+%% @spec init([]) -> SupervisorTree
+%% @doc supervisor callback.
+init([]) ->
     {ok, {{simple_one_for_one, 0, 1},
-        [{stomp_client,
-          {stomp_client, start_link, []},
-          temporary, brutal_kill, worker, [stomp_client]}
-        ]}}.
+	  [{stomp_client,
+	    {stomp_client, start_link, []},
+	    temporary, brutal_kill, worker, [stomp_client]}
+	  ]}}.

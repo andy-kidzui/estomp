@@ -1,20 +1,29 @@
+%% @author Andrew Kreiling <andy@kidzui.com>
+%% @copyright 2008 KidZui, Inc. All Rights Reserved.
+
+%% @doc Sample stomp gateway.
+
 -module(sample_gateway).
 -author('Andrew Kreiling <andy@kidzui.com>').
+
 -behaviour(gen_server).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
--export([start/1, start_link/1, init/1]).
--export([handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+%% External exports
+-export([start/1, start_link/1]).
+
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -record(state, {client}).
 
 start(Args) ->
     spawn(fun() ->
-        gen_server:start_link({local, ?MODULE}, ?MODULE, Args, [])
-    end),
+		  gen_server:start_link({local, ?MODULE}, ?MODULE, Args, [])
+	  end),
     ok.
 
 start_link(Args) ->
