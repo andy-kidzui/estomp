@@ -15,7 +15,7 @@ ifndef no_debug_info
 endif
 
 ifdef debug
-  ERLC_FLAGS += -Ddebug
+  ERLC_FLAGS += -Ddebug -DTEST
 endif
 
 EBIN_DIR := ../ebin

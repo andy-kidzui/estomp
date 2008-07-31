@@ -22,18 +22,15 @@ start_link() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->
-    Stomp = {
-      stomp_supervisor,
-      {stomp_supervisor, start_link, []},
-      permanent, infinity, supervisor, [stomp_supervisor]},
-    GatewayConfig = [
-		     {host, "localhost"},
+    Stomp = {stomp_supervisor,
+	     {stomp_supervisor, start_link, []},
+	     permanent, infinity, supervisor, [stomp_supervisor]},
+    GatewayConfig = [{host, "localhost"},
 		     {port, 61613},
 		     {login, "login"},
 		     {passcode, "passcode"}],
-    Gateway = {
-      sample_gateway,
-      {sample_gateway, start_link, [GatewayConfig]},
-      permanent, 5000, worker, [sample_gateway]},
+    Gateway = {sample_gateway,
+	       {sample_gateway, start_link, [GatewayConfig]},
+	       permanent, 5000, worker, [sample_gateway]},
     Processes = [Stomp, Gateway],
     {ok, {{one_for_one, 10, 10}, Processes}}.

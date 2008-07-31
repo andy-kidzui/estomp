@@ -38,6 +38,21 @@ init(Args) ->
 handle_call(_Message, _From, State) ->
     {reply, error, State}.
 
+handle_cast({stomp, 'CONNECTED' = Command, _Headers, _Body}, State) ->
+    io:format("~n~p:~p~n", [?MODULE, Command]),
+    stomp_client:subscribe(State#state.client, "/queue/test", client),
+    {noreply, State};
+
+handle_cast({stomp, 'MESSAGE' = Command, Headers, Body}, State) ->
+    io:format("~n~p:~p:~n~p~n~p~n", [?MODULE, Command, Headers, Body]),
+    MessageID = proplists:get_value('message-id', Headers),
+    stomp_client:ack(State#state.client, MessageID),
+    {noreply, State};
+
+handle_cast({stomp, Command, Headers, Body}, State) ->
+    io:format("~n~p:~p:~n~p~n~p~n", [?MODULE, Command, Headers, Body]),
+    {noreply, State};
+
 handle_cast(_Message, State) ->
     {noreply, State}.
 
