@@ -1,3 +1,8 @@
+About
+=====
+
+estomp is an erlang implementation of the STOMP protocol.
+
 Getting
 =======
 
