@@ -1,7 +1,10 @@
 About
 =====
 
-estomp is an erlang implementation of the STOMP protocol.
+estomp is an erlang implementation of the Stomp protocol. A persistent
+connection to the Stomp server is managed by a gen_fsm. A sample app is
+included that shows how to interface a gen_server with the gen_fsm to process
+messages.
 
 Getting
 =======
