@@ -14,11 +14,11 @@
 
 %% External exports
 -export([start/1, start_link/1]).
--export([disconnect/1, subscribe/2, subscribe/3, ack/2, ack/3, send/3, unsubscribe/2]).
+-export([connect/1, disconnect/1, subscribe/2, subscribe/3, ack/2, ack/3, send/3, unsubscribe/2]).
 
 %% gen_fsm callbacks
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
--export([connecting/2, connecting/3, connect/2, connect/3, connected/2, connected/3]).
+-export([connecting/2, connecting/3, connected/2, connected/3]).
 
 -record(state, {parent, host, port, login, passcode, socket, buffer}).
 
@@ -31,6 +31,11 @@ start(Args) ->
 %% @doc gen_fsm start_link, callback for supervisor.
 start_link(Args) ->
     gen_fsm:start_link(?MODULE, Args, []).
+
+%% @spec connect(FsmRef) -> Reply
+%% @doc Stomp API - send a connect message
+connect(FsmRef) ->
+    gen_fsm:send_event(FsmRef, {connect}).
 
 %% @spec disconnect(FsmRef) -> Reply
 %% @doc Stomp API - send a disconnect message
@@ -135,7 +140,8 @@ connecting(timeout, State) ->
     case gen_tcp:connect(State#state.host, State#state.port,
 			 [binary, {active, true}, {packet, 0}], 5000) of
         {ok, Socket} ->
-	    {next_state, connect, State#state{socket = Socket}, 0};
+            connect(self()),
+	    {next_state, connected, State#state{socket = Socket}, 0};
         {error, Reason} ->
 	    io:format("~n~p:connecting: failed for ~p:~p ~p~n",
 		      [?MODULE, State#state.host, State#state.port, Reason]),
@@ -151,25 +157,16 @@ connecting(Event, State) ->
 connecting(_Event, _From, State) ->
     {reply, {error, connecting}, connecting, State, 5000}.
 
-%% @spec connect(Event, State) -> tuple()
+%% @spec connected(Event, State) -> tuple()
+%% where
+%%       Event = {connect}
 %% @doc gen_fsm callback.
-connect(timeout, State) ->
+connected({connect}, State) ->
     Command = 'CONNECT',
     Headers = [{login, State#state.login}, {passcode, State#state.passcode}],
     ok = send_frame(State#state.socket, Command, Headers),
     {next_state, connected, State};
 
-connect(Event, State) ->
-    io:format("~n~p:connect/2: ~p~n", [?MODULE, Event]),
-    {next_state, connect, State, 5000}.
-
-%% @spec connect(Event, From, State) -> tuple()
-%% @doc gen_fsm callback.
-connect(_Event, _From, State) ->
-    {reply, {error, connecting}, connect, State, 5000}.
-
-%% @spec connected(Event, State) -> tuple()
-%% @doc gen_fsm callback.
 connected(Event, State) ->
     io:format("~n~p:connected/2: ~p~n", [?MODULE, Event]),
     {next_state, connected, State}.
