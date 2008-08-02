@@ -89,6 +89,7 @@ init({Parent, Options} = _Args) ->
     Passcode = proplists:get_value(passcode, Options),
     link(Parent),
     State = #state{parent = Parent, host = Host, port = Port, login = Login, passcode = Passcode},
+    gen_fsm:start_timer(5000, {heartbeat}),
     {ok, connecting, State, 0}.
 
 %% @spec handle_event(Event, StateName, State) -> tuple()
@@ -110,15 +111,15 @@ handle_info({tcp, _Socket, Bin}, connected, State) ->
 
 handle_info({tcp, Socket, _Bin}, _StateName, State) ->
     gen_tcp:close(Socket),
-    {next_state, connecting, State#state{socket = undefined}, 5000};
+    {next_state, connecting, State#state{socket = undefined}};
 
 handle_info({tcp_closed, Socket}, _StateName, State) ->
     gen_tcp:close(Socket),
-    {next_state, connecting, State#state{socket = undefined}, 5000};
+    {next_state, connecting, State#state{socket = undefined}};
 
 handle_info({tcp_error, Socket, _Reason}, _StateName, State) ->
     gen_tcp:close(Socket),
-    {next_state, connecting, State#state{socket = undefined}, 5000};
+    {next_state, connecting, State#state{socket = undefined}};
 
 handle_info(Message, StateName, State) ->
     io:format("~n~p:handle_info: ~p ~p~n", [?MODULE, StateName, Message]),
@@ -141,21 +142,25 @@ connecting(timeout, State) ->
 			 [binary, {active, true}, {packet, 0}], 5000) of
         {ok, Socket} ->
             connect(self()),
-	    {next_state, connected, State#state{socket = Socket}, 0};
+	    {next_state, connected, State#state{socket = Socket}};
         {error, Reason} ->
 	    io:format("~n~p:connecting: failed for ~p:~p ~p~n",
 		      [?MODULE, State#state.host, State#state.port, Reason]),
-	    {next_state, connecting, State, 5000}
+	    {next_state, connecting, State}
     end;
+
+connecting({timeout, _Ref, {heartbeat}}, State) ->
+    gen_fsm:start_timer(5000, {heartbeat}),
+    {next_state, connecting, State, 0};
 
 connecting(Event, State) ->
     io:format("~n~p:connecting/2: ~p~n", [?MODULE, Event]),
-    {next_state, connecting, State, 5000}.
+    {next_state, connecting, State}.
 
 %% @spec connecting(Event, From, State) -> tuple()
 %% @doc gen_fsm callback.
 connecting(_Event, _From, State) ->
-    {reply, {error, connecting}, connecting, State, 5000}.
+    {reply, {error, connecting}, connecting, State}.
 
 %% @spec connected(Event, State) -> tuple()
 %% where
@@ -165,6 +170,10 @@ connected({connect}, State) ->
     Command = 'CONNECT',
     Headers = [{login, State#state.login}, {passcode, State#state.passcode}],
     ok = send_frame(State#state.socket, Command, Headers),
+    {next_state, connected, State};
+
+connected({timeout, _Ref, {heartbeat}}, State) ->
+    gen_fsm:start_timer(5000, {heartbeat}),
     {next_state, connected, State};
 
 connected(Event, State) ->
